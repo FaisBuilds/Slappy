@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, memo } from "react";
 import Image from "next/image";
 
 interface FloatingLip {
@@ -10,7 +10,7 @@ interface FloatingLip {
   delay: number;
 }
 
-export default function FloatingLips() {
+const FloatingLipsComponent = memo(() => {
   const [lips, setLips] = useState<FloatingLip[]>([]);
 
   useEffect(() => {
@@ -108,4 +108,8 @@ export default function FloatingLips() {
       `}</style>
     </div>
   );
-}
+});
+
+FloatingLipsComponent.displayName = "FloatingLips";
+
+export default FloatingLipsComponent;

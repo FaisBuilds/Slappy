@@ -38,9 +38,9 @@ export const useSlap = () => {
           if (force > 8 && !cooldownRef.current) {
             let level: SlapIntensity = null;
 
-            if (force < 10) {
+            if (force < 15) {
               level = "soft";
-            } else if (force <= 20) {
+            } else if (force <= 30) {
               level = "medium";
             } else {
               level = "hard";
