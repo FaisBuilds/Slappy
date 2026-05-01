@@ -1,5 +1,5 @@
 import { Howl } from 'howler';
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState } from 'react';
 
 type SlapIntensity = 'soft' | 'medium' | 'hard';
 
@@ -9,25 +9,27 @@ export const useSound = () => {
     medium: null,
     hard: null,
   });
+  const [isPlaying, setIsPlaying] = useState(false);
 
   useEffect(() => {
-    // Initialize Howl instances for each intensity
     soundsRef.current = {
       soft: new Howl({
         src: ['/sounds/soft.mp3'],
         preload: true,
+        onend: () => setIsPlaying(false),
       }),
       medium: new Howl({
         src: ['/sounds/medium.mp3'],
         preload: true,
+        onend: () => setIsPlaying(false),
       }),
       hard: new Howl({
         src: ['/sounds/hard.mp3'],
         preload: true,
+        onend: () => setIsPlaying(false),
       }),
     };
 
-    // Cleanup: stop and unload all sounds on unmount
     return () => {
       Object.values(soundsRef.current).forEach((sound) => {
         if (sound) {
@@ -41,12 +43,12 @@ export const useSound = () => {
   const playSound = (intensity: SlapIntensity) => {
     const sound = soundsRef.current[intensity];
     
-    if (sound) {
-      // If a sound is already playing, stop it and play the new one
+    if (sound && !isPlaying) {
       sound.stop();
+      setIsPlaying(true);
       sound.play();
     }
   };
 
-  return { playSound };
+  return { playSound, isPlaying };
 };

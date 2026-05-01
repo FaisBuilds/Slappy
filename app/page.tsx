@@ -6,13 +6,23 @@ import { useLocalStorage } from "@/hooks/useLocalStorage";
 import FloatingLips from "@/components/FloatingLips";
 import SlapZone from "@/components/SlapZone";
 import SlapCounter from "@/components/SlapCounter";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 
 export default function Home() {
   const { intensity, slapCount, isListening } = useSlap();
-  const { playSound } = useSound();
-  const { stats, isLoaded, addSlap } = useLocalStorage();
+  const { playSound, isPlaying } = useSound();
+  const { stats, isLoaded, addSlap, clearStats } = useLocalStorage();
   const [webSlapCount, setWebSlapCount] = useState(0);
+  const lastSavedRef = useRef(0);
+  
+
+  // Initialize webSlapCount from localStorage when page loads
+  useEffect(() => {
+    if (isLoaded && stats) {
+      setWebSlapCount(stats.totalSlaps);
+      lastSavedRef.current = stats.totalSlaps;
+    }
+  }, [isLoaded, stats]);
 
   // Play sound when intensity changes
   useEffect(() => {
@@ -21,37 +31,32 @@ export default function Home() {
     }
   }, [intensity, playSound]);
 
-  // Save slap to localStorage when count changes
+  // Save slap to localStorage ONLY when webSlapCount increases
   useEffect(() => {
-    if (isLoaded && stats && webSlapCount > 0) {
-      addSlap("soft"); // Will change based on actual intensity in MVP2
+    if (isLoaded && webSlapCount > lastSavedRef.current) {
+      lastSavedRef.current = webSlapCount;
+      addSlap("soft");
     }
-  }, [webSlapCount, isLoaded, stats, addSlap]);
+  }, [webSlapCount, isLoaded, addSlap]);
 
-  // Manual tap handler for web testing
+  // Manual tap handler
   const handleManualSlap = () => {
-    const isMobile = typeof window !== "undefined" && "ontouchstart" in window;
-
-    let slapIntensity: "soft" | "medium" | "hard" = "soft";
+    const isMobile =
+      typeof window !== "undefined" && "ontouchstart" in window;
 
     if (!isMobile) {
       const fakeForce = Math.random() * 30;
       if (fakeForce < 10) {
-        slapIntensity = "soft";
         playSound("soft");
       } else if (fakeForce < 20) {
-        slapIntensity = "medium";
         playSound("medium");
       } else {
-        slapIntensity = "hard";
         playSound("hard");
       }
     } else {
       playSound("soft");
     }
 
-    // Save to localStorage
-    addSlap(slapIntensity);
     setWebSlapCount((prev) => prev + 1);
   };
 
@@ -63,8 +68,7 @@ export default function Home() {
 
       <div className="relative z-10 flex flex-col items-center justify-center h-full">
         <SlapCounter count={displayCount} />
-
-        <SlapZone onSlap={handleManualSlap} />
+        <SlapZone onSlap={handleManualSlap} disabled={isPlaying} />
 
         <div className="mt-8 text-center">
           {isListening ? (
@@ -77,9 +81,11 @@ export default function Home() {
             </p>
           )}
           {stats && (
-            <p className="text-gray-400 text-xs mt-2">
-              Total stored: {stats.totalSlaps}
-            </p>
+            <div>
+              <p className="text-gray-400 text-xs mt-2">
+                Total stored: {stats.totalSlaps}
+              </p>
+            </div>
           )}
         </div>
       </div>
