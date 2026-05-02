@@ -6,9 +6,13 @@ interface SlapCounterProps {
 
 export default function SlapCounter({ count }: SlapCounterProps) {
   return (
-    <div className="absolute top-10 left-1/2 transform -translate-x-1/2 text-center">
-      <p className="text-white text-sm font-semibold opacity-80">SLAPS</p>
-      <p className="text-5xl font-bold text-red-500">{count}</p>
+    <div className="text-center mb-12">
+      <p className="text-gray-400 text-sm font-semibold tracking-widest mb-2">
+        SLAPS
+      </p>
+      <p className="text-red-600 text-7xl font-black drop-shadow-lg shadow-red-600/50">
+        {count}
+      </p>
     </div>
   );
 }

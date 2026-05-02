@@ -63,29 +63,27 @@ export default function Home() {
   const displayCount = isListening ? slapCount : webSlapCount;
 
   return (
-    <div className="relative w-full h-screen bg-[#1a1a1a] overflow-hidden">
+    <div className="relative w-full h-screen bg-black overflow-hidden">
       <FloatingLips />
 
       <div className="relative z-10 flex flex-col items-center justify-center h-full">
         <SlapCounter count={displayCount} />
         <SlapZone onSlap={handleManualSlap} disabled={isPlaying} />
 
-        <div className="mt-8 text-center">
+        <div className="mt-12 text-center space-y-3">
           {isListening ? (
-            <p className="text-green-400 text-sm font-semibold">
-              🎤 Listening (Mobile)
+            <p className="text-emerald-400 text-sm font-semibold animate-pulse">
+              🎤 Accelerometer Active
             </p>
           ) : (
-            <p className="text-yellow-400 text-sm font-semibold">
-              💻 Web Mode (PC/Browser)
+            <p className="text-purple-400 text-sm font-semibold">
+              💻 Browser Mode
             </p>
           )}
           {stats && (
-            <div>
-              <p className="text-gray-400 text-xs mt-2">
-                Total stored: {stats.totalSlaps}
-              </p>
-            </div>
+            <p className="text-gray-500 text-xs font-mono">
+              Total: {stats.totalSlaps}
+            </p>
           )}
         </div>
       </div>
