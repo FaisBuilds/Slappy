@@ -45,8 +45,8 @@ const FloatingLipsComponent = memo(() => {
           <Image
             src={`/lips/${lip.expression}.png`}
             alt="lip expression"
-            width={60}
-            height={60}
+            width={80}
+            height={80}
             priority={false}
             style={{ pointerEvents: "none" }}
           />
