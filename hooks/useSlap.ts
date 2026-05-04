@@ -1,7 +1,13 @@
 import { useEffect, useState, useRef } from "react";
 import { Motion } from "@capacitor/motion";
+import { registerPlugin } from "@capacitor/core";
 
 export type SlapIntensity = "soft" | "medium" | "hard" | null;
+
+const SlapService = registerPlugin<{
+  start: () => Promise<void>;
+  stop: () => Promise<void>;
+}>("SlapService");
 
 export const useSlap = () => {
   const [intensity, setIntensity] = useState<SlapIntensity>(null);
@@ -15,11 +21,9 @@ export const useSlap = () => {
 
     const startListening = async () => {
       try {
-        // Request permission if necessary (iOS requires this)
-        // On Android/Web it's usually handled by the plugin automatically
-        //eslint-disable-next-line @typescript-eslint/no-explicit-any
-            if ((Motion as any).requestPermissions) {
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        if ((Motion as any).requestPermissions) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const permission = await (Motion as any).requestPermissions();
           if (permission.acceleration !== "granted") {
             console.error("Motion permission not granted");
@@ -27,14 +31,18 @@ export const useSlap = () => {
           }
         }
 
+        // Start foreground service so Android doesn't kill us in background
+        try {
+          await SlapService.start();
+        } catch (e) {
+          // Silently fail on web/dev where plugin doesn't exist
+          console.warn("SlapService not available (web?):", e);
+        }
+
         listener = await Motion.addListener("accel", (event) => {
           const { x, y, z } = event.acceleration;
-
-          // Calculate force (magnitude of the acceleration vector)
-          // Using linear acceleration (no gravity)
           const force = Math.sqrt(x * x + y * y + z * z);
 
-          // Only trigger if force is above minimum threshold of 8
           if (force > 8 && !cooldownRef.current) {
             let level: SlapIntensity = null;
 
@@ -49,7 +57,6 @@ export const useSlap = () => {
             setIntensity(level);
             setSlapCount((prev) => prev + 1);
 
-            // Apply cooldown to prevent multiple triggers for a single slap
             cooldownRef.current = true;
             setTimeout(() => {
               cooldownRef.current = false;
@@ -70,6 +77,12 @@ export const useSlap = () => {
       if (listener) {
         listener.remove();
       }
+
+      // Stop foreground service on cleanup
+      SlapService.stop().catch((e) =>
+        console.warn("SlapService stop failed:", e)
+      );
+
       setIsListening(false);
     };
   }, []);
