@@ -20,6 +20,9 @@ importers:
       '@capacitor/motion':
         specifier: ^8.0.0
         version: 8.0.0(@capacitor/core@8.3.0)
+      '@capawesome-team/capacitor-android-foreground-service':
+        specifier: ^8.1.0
+        version: 8.1.0(@capacitor/core@8.3.0)
       '@hugeicons/core-free-icons':
         specifier: ^4.1.1
         version: 4.1.1
@@ -235,6 +238,11 @@ packages:
 
   '@capacitor/motion@8.0.0':
     resolution: {integrity: sha512-eCTe9+ZSVw2dQLQLvq5vfp2GGnMmsAy5jn4boKB93CHEenD9ZZojXZYJn1u4zUWhfj9cGXSxu+2j7WaQbkMlPg==}
+    peerDependencies:
+      '@capacitor/core': '>=8.0.0'
+
+  '@capawesome-team/capacitor-android-foreground-service@8.1.0':
+    resolution: {integrity: sha512-q1LaZQ5K2cu2IXjbabwssF+RpUBikLxkOHYS69ahXz6a1kIsr2jC4RU1bwAEBTopRz0ccgfai0dSSTdqbtEwhw==}
     peerDependencies:
       '@capacitor/core': '>=8.0.0'
 
@@ -4195,6 +4203,10 @@ snapshots:
       tslib: 2.8.1
 
   '@capacitor/motion@8.0.0(@capacitor/core@8.3.0)':
+    dependencies:
+      '@capacitor/core': 8.3.0
+
+  '@capawesome-team/capacitor-android-foreground-service@8.1.0(@capacitor/core@8.3.0)':
     dependencies:
       '@capacitor/core': 8.3.0
 

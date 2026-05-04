@@ -11,12 +11,12 @@ import { useEffect, useState, useRef } from "react";
 export default function Home() {
   const { intensity, slapCount, isListening } = useSlap();
   const { playSound, isPlaying } = useSound();
-  const { stats, isLoaded, addSlap, clearStats } = useLocalStorage();
+  const { stats, isLoaded, addSlap } = useLocalStorage();
   const [webSlapCount, setWebSlapCount] = useState(0);
+  const [isGlowActive, setIsGlowActive] = useState(false);
   const lastSavedRef = useRef(0);
-  
 
-  // Initialize webSlapCount from localStorage when page loads
+  // Sync initial state
   useEffect(() => {
     if (isLoaded && stats) {
       setWebSlapCount(stats.totalSlaps);
@@ -24,68 +24,64 @@ export default function Home() {
     }
   }, [isLoaded, stats]);
 
-  // Play sound when intensity changes
+  // Visual feedback trigger
+  const triggerImpact = () => {
+    setIsGlowActive(true);
+    setTimeout(() => setIsGlowActive(false), 250);
+  };
+
+  // Physical Slap Handler (Accelerometer)
   useEffect(() => {
     if (intensity) {
       playSound(intensity);
+      triggerImpact();
     }
   }, [intensity, playSound]);
 
-  // Save slap to localStorage ONLY when webSlapCount increases
+  // Sync web slaps to storage
   useEffect(() => {
     if (isLoaded && webSlapCount > lastSavedRef.current) {
       lastSavedRef.current = webSlapCount;
-      addSlap("soft");
+      addSlap("soft"); // Default category for manual taps
     }
   }, [webSlapCount, isLoaded, addSlap]);
 
-  // Manual tap handler
   const handleManualSlap = () => {
-    const isMobile =
-      typeof window !== "undefined" && "ontouchstart" in window;
+    const isMobile = typeof window !== "undefined" && "ontouchstart" in window;
 
     if (!isMobile) {
       const fakeForce = Math.random() * 30;
-      if (fakeForce < 10) {
-        playSound("soft");
-      } else if (fakeForce < 20) {
-        playSound("medium");
-      } else {
-        playSound("hard");
-      }
+      playSound(fakeForce < 10 ? "soft" : fakeForce < 20 ? "medium" : "hard");
     } else {
       playSound("soft");
     }
 
     setWebSlapCount((prev) => prev + 1);
+    triggerImpact();
   };
 
   const displayCount = isListening ? slapCount : webSlapCount;
 
   return (
-    <div className="relative w-full h-screen bg-black overflow-hidden">
+    <div className="relative w-full h-screen bg-black overflow-hidden select-none">
       <FloatingLips />
 
       <div className="relative z-10 flex flex-col items-center justify-center h-full">
-        <SlapCounter count={displayCount} />
-        <SlapZone onSlap={handleManualSlap} disabled={isPlaying} />
-
-        <div className="mt-12 text-center space-y-3">
-          {isListening ? (
-            <p className="text-emerald-400 text-sm font-semibold animate-pulse">
-              🎤 Accelerometer Active
-            </p>
-          ) : (
-            <p className="text-purple-400 text-sm font-semibold">
-              💻 Browser Mode
-            </p>
-          )}
-          {stats && (
-            <p className="text-gray-500 text-xs font-mono">
-              Total: {stats.totalSlaps}
-            </p>
-          )}
+        {/* Animated Counter Wrapper */}
+        <div 
+          className={`transition-all duration-200 transform ${
+            isGlowActive ? "scale-110" : "scale-100"
+          }`}
+          style={{
+            filter: isGlowActive 
+              ? "drop-shadow(0 0 30px rgba(220, 38, 38, 0.8))" 
+              : "drop-shadow(0 0 10px rgba(0, 0, 0, 0))"
+          }}
+        >
+          <SlapCounter count={displayCount} />
         </div>
+
+        <SlapZone onSlap={handleManualSlap} disabled={isPlaying} />
       </div>
     </div>
   );
