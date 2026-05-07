@@ -10,7 +10,7 @@ export const useSound = () => {
     hard: null,
   });
   const [isPlaying, setIsPlaying] = useState(false);
-
+  const soundTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   useEffect(() => {
     soundsRef.current = {
       soft: new Howl({
@@ -37,16 +37,38 @@ export const useSound = () => {
           sound.unload();
         }
       });
+      if (soundTimeoutRef.current) {
+        clearTimeout(soundTimeoutRef.current);
+      }
     };
   }, []);
 
-  const playSound = (intensity: SlapIntensity) => {
-    const sound = soundsRef.current[intensity];
+  const playSound = (intensity: SlapIntensity | number) => {
+    // Handle number input (force) from accelerometer
+    let soundKey: SlapIntensity = 'soft';
+    if (typeof intensity === 'number') {
+      if (intensity < 12) soundKey = 'soft';
+      else if (intensity <= 20) soundKey = 'medium';
+      else soundKey = 'hard';
+    } else {
+      soundKey = intensity;
+    }
+
+    const sound = soundsRef.current[soundKey];
     
-    if (sound && !isPlaying) {
+    if (sound) {
+      // ✅ ALWAYS stop and replay (don't check isPlaying)
       sound.stop();
-      setIsPlaying(true);
       sound.play();
+      setIsPlaying(true);
+
+      // Auto-reset after sound duration
+      if (soundTimeoutRef.current) {
+        clearTimeout(soundTimeoutRef.current);
+      }
+      soundTimeoutRef.current = setTimeout(() => {
+        setIsPlaying(false);
+      }, 500); // 500ms for safety
     }
   };
 

@@ -16,14 +16,11 @@ export const useSlap = () => {
   const cooldownRef = useRef(false);
 
   useEffect(() => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let listener: any;
 
     const startListening = async () => {
       try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         if ((Motion as any).requestPermissions) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const permission = await (Motion as any).requestPermissions();
           if (permission.acceleration !== "granted") {
             console.error("Motion permission not granted");
@@ -31,29 +28,31 @@ export const useSlap = () => {
           }
         }
 
-        // Start foreground service so Android doesn't kill us in background
+        // Start foreground service
         try {
           await SlapService.start();
+          console.log("✅ Foreground service started");
         } catch (e) {
-          // Silently fail on web/dev where plugin doesn't exist
-          console.warn("SlapService not available (web?):", e);
+          console.warn("⚠️ SlapService not available:", e);
         }
 
         listener = await Motion.addListener("accel", (event) => {
           const { x, y, z } = event.acceleration;
           const force = Math.sqrt(x * x + y * y + z * z);
 
-          if (force > 8 && !cooldownRef.current) {
+          // ✅ LOWER THRESHOLD + Better detection
+          if (force > 5 && !cooldownRef.current) {
             let level: SlapIntensity = null;
 
-            if (force < 15) {
+            if (force < 12) {
               level = "soft";
-            } else if (force <= 30) {
+            } else if (force <= 20) {
               level = "medium";
             } else {
               level = "hard";
             }
 
+            console.log(`📊 Force: ${force.toFixed(2)} → ${level}`);
             setIntensity(level);
             setSlapCount((prev) => prev + 1);
 
@@ -67,7 +66,7 @@ export const useSlap = () => {
 
         setIsListening(true);
       } catch (error) {
-        console.error("Error starting motion listener:", error);
+        console.error("❌ Error starting motion listener:", error);
       }
     };
 
@@ -78,9 +77,8 @@ export const useSlap = () => {
         listener.remove();
       }
 
-      // Stop foreground service on cleanup
       SlapService.stop().catch((e) =>
-        console.warn("SlapService stop failed:", e)
+        console.warn("⚠️ SlapService stop failed:", e)
       );
 
       setIsListening(false);

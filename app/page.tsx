@@ -9,7 +9,7 @@ import SlapCounter from "@/components/SlapCounter";
 import { useEffect, useState, useRef } from "react";
 
 export default function Home() {
-  const { intensity, slapCount, isListening } = useSlap();
+  const { intensity, slapCount, isListening } = useSlap(); // ✅ ADD THIS BACK
   const { playSound, isPlaying } = useSound();
   const { stats, isLoaded, addSlap } = useLocalStorage();
   const [webSlapCount, setWebSlapCount] = useState(0);
@@ -42,7 +42,7 @@ export default function Home() {
   useEffect(() => {
     if (isLoaded && webSlapCount > lastSavedRef.current) {
       lastSavedRef.current = webSlapCount;
-      addSlap("soft"); // Default category for manual taps
+      addSlap("soft");
     }
   }, [webSlapCount, isLoaded, addSlap]);
 
@@ -53,7 +53,8 @@ export default function Home() {
       const fakeForce = Math.random() * 30;
       playSound(fakeForce < 10 ? "soft" : fakeForce < 20 ? "medium" : "hard");
     } else {
-      playSound("soft");
+      const fakeForce = Math.random() * 30;
+      playSound(fakeForce < 12 ? "soft" : fakeForce < 20 ? "medium" : "hard");
     }
 
     setWebSlapCount((prev) => prev + 1);
@@ -67,7 +68,6 @@ export default function Home() {
       <FloatingLips />
 
       <div className="relative z-10 flex flex-col items-center justify-center h-full">
-        {/* Animated Counter Wrapper */}
         <div 
           className={`transition-all duration-200 transform ${
             isGlowActive ? "scale-110" : "scale-100"

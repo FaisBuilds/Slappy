@@ -21,10 +21,11 @@ Built with Next.js + Capacitor. Exported as a real APK. No Play Store needed.
   - force < 10 → soft moan
   - force 10-20 → medium moan
   - force > 20 → loud moan
-- Tap button in center (fallback for PC/weak slaps)
+- Tap button in center (fallback for PC/weak slaps, animation, glow)
 - Slap counter on screen
 - Background mode (accelerometer alive when app minimized)
-- Floating lips UI (different expressions, dark grey background)
+- Floating lips UI (different expressions, black background)
+- Make App Icon
 
 ## MVP2 (DO NOT BUILD YET)
 - Global slap counter (Supabase)
