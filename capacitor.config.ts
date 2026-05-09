@@ -5,9 +5,6 @@ const config: CapacitorConfig = {
   appName: 'SlapDroid',
   webDir: 'out',
   plugins: {
-    SlapService: {
-      // Plugin configuration
-    },
   },
 };
 

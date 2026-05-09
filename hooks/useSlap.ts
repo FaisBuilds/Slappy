@@ -1,58 +1,98 @@
 import { useEffect, useState, useRef } from "react";
 import { Motion } from "@capacitor/motion";
-import { registerPlugin } from "@capacitor/core";
 
 export type SlapIntensity = "soft" | "medium" | "hard" | null;
 
-const SlapService = registerPlugin<{
-  start: () => Promise<void>;
-  stop: () => Promise<void>;
-}>("SlapService");
+interface SlapThresholds {
+  soft: number;
+  medium: number;
+  hard: number;
+}
 
 export const useSlap = () => {
   const [intensity, setIntensity] = useState<SlapIntensity>(null);
   const [slapCount, setSlapCount] = useState(0);
   const [isListening, setIsListening] = useState(false);
+  const [isCalibrating, setIsCalibrating] = useState(true);
+  const [needsSetup, setNeedsSetup] = useState(false);
+
   const cooldownRef = useRef(false);
+  const listenerAddedRef = useRef(false);
+  const baselineRef = useRef<number | null>(null);
+  const stdDevRef = useRef<number | null>(null);
+  const thresholdsRef = useRef<SlapThresholds | null>(null);
+  const calibrationSamplesRef = useRef<number[]>([]);
+  const currentZScoreRef = useRef<number>(0);
 
   useEffect(() => {
+    if (listenerAddedRef.current) return;
+    listenerAddedRef.current = true;
+
     let listener: any;
+    const CALIBRATION_MS = 1500;
+    const calibrationStart = Date.now();
 
     const startListening = async () => {
       try {
-        if ((Motion as any).requestPermissions) {
-          const permission = await (Motion as any).requestPermissions();
-          if (permission.acceleration !== "granted") {
-            console.error("Motion permission not granted");
-            return;
-          }
-        }
-
-        // Start foreground service
-        try {
-          await SlapService.start();
-          console.log("✅ Foreground service started");
-        } catch (e) {
-          console.warn("⚠️ SlapService not available:", e);
-        }
-
         listener = await Motion.addListener("accel", (event) => {
-          const { x, y, z } = event.acceleration;
+          const acc =
+            event.acceleration?.x != null
+              ? event.acceleration
+              : event.accelerationIncludingGravity;
+
+          if (!acc) return;
+
+          const x = acc.x ?? 0;
+          const y = acc.y ?? 0;
+          const z = acc.z ?? 0;
           const force = Math.sqrt(x * x + y * y + z * z);
 
-          // ✅ LOWER THRESHOLD + Better detection
-          if (force > 5 && !cooldownRef.current) {
-            let level: SlapIntensity = null;
+          // Phase 1: idle calibration
+          if (Date.now() - calibrationStart < CALIBRATION_MS) {
+            calibrationSamplesRef.current.push(force);
+            return;
+          }
 
-            if (force < 12) {
-              level = "soft";
-            } else if (force <= 20) {
-              level = "medium";
+          // Phase 2: compute baseline + stddev once
+          if (baselineRef.current === null) {
+            const s = calibrationSamplesRef.current;
+            const avg = s.reduce((a, b) => a + b, 0) / s.length;
+            const variance = s.reduce((a, b) => a + Math.pow(b - avg, 2), 0) / s.length;
+            baselineRef.current = avg;
+            stdDevRef.current = Math.sqrt(variance);
+
+            // Check for saved thresholds
+            const saved = localStorage.getItem("slapThresholds");
+            if (saved) {
+              thresholdsRef.current = JSON.parse(saved);
+              setIsCalibrating(false);
             } else {
-              level = "hard";
+              setNeedsSetup(true);
+              setIsCalibrating(false);
             }
+            return;
+          }
 
-            console.log(`📊 Force: ${force.toFixed(2)} → ${level}`);
+          // Always track live z-score for setup screen to read
+          const zScore =
+            stdDevRef.current && stdDevRef.current > 0
+              ? (force - baselineRef.current!) / stdDevRef.current
+              : 0;
+          currentZScoreRef.current = zScore;
+
+          // Phase 3: detect slap if thresholds exist
+          if (!thresholdsRef.current) return;
+          if (cooldownRef.current) return;
+
+          const { soft, medium, hard } = thresholdsRef.current;
+          const minThreshold = soft * 0.5;
+
+          if (zScore > minThreshold) {
+            let level: SlapIntensity;
+            if (zScore < medium) level = "soft";
+            else if (zScore < hard) level = "medium";
+            else level = "hard";
+
             setIntensity(level);
             setSlapCount((prev) => prev + 1);
 
@@ -60,30 +100,60 @@ export const useSlap = () => {
             setTimeout(() => {
               cooldownRef.current = false;
               setIntensity(null);
-            }, 300);
+            }, 500);
           }
         });
 
         setIsListening(true);
       } catch (error) {
-        console.error("❌ Error starting motion listener:", error);
+        console.error("Motion listener error:", error);
       }
     };
 
     startListening();
 
     return () => {
-      if (listener) {
-        listener.remove();
-      }
-
-      SlapService.stop().catch((e) =>
-        console.warn("⚠️ SlapService stop failed:", e)
-      );
-
+      if (listener) listener.remove();
+      listenerAddedRef.current = false;
       setIsListening(false);
     };
   }, []);
 
-  return { intensity, slapCount, isListening };
+  const capturePeak = (durationMs: number): Promise<number> => {
+    return new Promise((resolve) => {
+      let peak = 0;
+      const interval = setInterval(() => {
+        if (currentZScoreRef.current > peak) {
+          peak = currentZScoreRef.current;
+        }
+      }, 16);
+      setTimeout(() => {
+        clearInterval(interval);
+        resolve(peak);
+      }, durationMs);
+    });
+  };
+
+  const saveThresholds = (thresholds: SlapThresholds) => {
+    thresholdsRef.current = thresholds;
+    localStorage.setItem("slapThresholds", JSON.stringify(thresholds));
+    setNeedsSetup(false);
+  };
+
+  const resetThresholds = () => {
+    localStorage.removeItem("slapThresholds");
+    thresholdsRef.current = null;
+    setNeedsSetup(true);
+  };
+
+  return {
+    intensity,
+    slapCount,
+    isListening,
+    isCalibrating,
+    needsSetup,
+    capturePeak,
+    saveThresholds,
+    resetThresholds,
+  };
 };

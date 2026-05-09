@@ -11,21 +11,28 @@ export const useSound = () => {
   });
   const [isPlaying, setIsPlaying] = useState(false);
   const soundTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
   useEffect(() => {
+    // ✅ Enable HTML5 audio for mobile
+    Howler.usingWebAudio = true;
+
     soundsRef.current = {
       soft: new Howl({
         src: ['/sounds/soft.mp3'],
         preload: true,
+        html5: true, // ✅ Enable HTML5 fallback
         onend: () => setIsPlaying(false),
       }),
       medium: new Howl({
         src: ['/sounds/medium.mp3'],
         preload: true,
+        html5: true, // ✅ Enable HTML5 fallback
         onend: () => setIsPlaying(false),
       }),
       hard: new Howl({
         src: ['/sounds/hard.mp3'],
         preload: true,
+        html5: true, // ✅ Enable HTML5 fallback
         onend: () => setIsPlaying(false),
       }),
     };
@@ -44,7 +51,6 @@ export const useSound = () => {
   }, []);
 
   const playSound = (intensity: SlapIntensity | number) => {
-    // Handle number input (force) from accelerometer
     let soundKey: SlapIntensity = 'soft';
     if (typeof intensity === 'number') {
       if (intensity < 12) soundKey = 'soft';
@@ -57,18 +63,16 @@ export const useSound = () => {
     const sound = soundsRef.current[soundKey];
     
     if (sound) {
-      // ✅ ALWAYS stop and replay (don't check isPlaying)
       sound.stop();
       sound.play();
       setIsPlaying(true);
 
-      // Auto-reset after sound duration
       if (soundTimeoutRef.current) {
         clearTimeout(soundTimeoutRef.current);
       }
       soundTimeoutRef.current = setTimeout(() => {
         setIsPlaying(false);
-      }, 500); // 500ms for safety
+      }, 500);
     }
   };
 
