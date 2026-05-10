@@ -11,7 +11,7 @@ export interface UserStats {
   slaps: SlapData[];
   lastUpdated: number;
 }
-
+  
 const STORAGE_KEY = "slapdroid_user_stats";
 
 export const useLocalStorage = () => {

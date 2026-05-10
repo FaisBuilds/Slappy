@@ -92,11 +92,15 @@ export default function Home() {
         {/* Recalibrate button — small, bottom of screen */}
         {!needsSetup && !isCalibrating && (
           <button
-            onClick={resetThresholds}
-            className="absolute bottom-6 text-gray-600 text-xs tracking-widest"
-          >
-            recalibrate
-          </button>
+  onClick={resetThresholds}
+  className="absolute bottom-6 flex items-center gap-2 px-5 py-2.5 rounded-full border border-red-800/40 bg-red-950/30 text-red-400 text-xs tracking-widest uppercase backdrop-blur-sm transition-all duration-200 active:scale-95 hover:bg-red-900/40 hover:border-red-600/60 hover:text-red-300"
+>
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+    <path d="M3 3v5h5"/>
+  </svg>
+  recalibrate
+</button>
         )}
       </div>
     </div>

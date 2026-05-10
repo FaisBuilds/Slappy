@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 
 type Step = "intro" | "soft" | "medium" | "hard" | "done";
 
@@ -11,16 +11,16 @@ interface Props {
 
 export default function CalibrationScreen({ capturePeak, saveThresholds }: Props) {
   const [step, setStep] = useState<Step>("intro");
-  const [peaks, setPeaks] = useState<number[]>([]);
   const [capturing, setCapturing] = useState(false);
   const [feedback, setFeedback] = useState("");
+  const peaksRef = useRef<number[]>([]);
 
   const capture = async (level: "soft" | "medium" | "hard") => {
     setCapturing(true);
     setFeedback("slap now!");
 
     const peak = await capturePeak(1000);
-    setPeaks((prev) => [...prev, peak]);
+    peaksRef.current = [...peaksRef.current, peak];
 
     setFeedback(`got it! z=${peak.toFixed(1)}`);
     setCapturing(false);
@@ -30,8 +30,7 @@ export default function CalibrationScreen({ capturePeak, saveThresholds }: Props
       if (level === "soft") setStep("medium");
       else if (level === "medium") setStep("hard");
       else {
-        // save thresholds with 0.7 margin
-        const [s, m, h] = [...peaks, peak];
+        const [s, m, h] = peaksRef.current;
         saveThresholds({
           soft: s * 0.7,
           medium: m * 0.7,
@@ -62,6 +61,8 @@ export default function CalibrationScreen({ capturePeak, saveThresholds }: Props
       next: () => capture("hard"),
     },
   };
+
+  const steps = ["soft", "medium", "hard"];
 
   return (
     <div className="absolute inset-0 z-30 bg-black flex flex-col items-center justify-center px-8 text-white">
@@ -104,7 +105,7 @@ export default function CalibrationScreen({ capturePeak, saveThresholds }: Props
           )}
 
           <div className="flex gap-2 mt-10">
-            {["soft", "medium", "hard"].map((s) => (
+            {steps.map((s) => (
               <div
                 key={s}
                 className="w-2 h-2 rounded-full"
@@ -112,7 +113,7 @@ export default function CalibrationScreen({ capturePeak, saveThresholds }: Props
                   background:
                     s === step
                       ? "white"
-                      : peaks.length > ["soft", "medium", "hard"].indexOf(s)
+                      : peaksRef.current.length > steps.indexOf(s)
                       ? "#666"
                       : "#333",
                 }}
