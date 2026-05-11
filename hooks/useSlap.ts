@@ -23,6 +23,8 @@ export const useSlap = () => {
   const thresholdsRef = useRef<SlapThresholds | null>(null);
   const calibrationSamplesRef = useRef<number[]>([]);
   const currentZScoreRef = useRef<number>(0);
+  const isAppVisibleRef = useRef(true);
+  const resumeStabilizationRef = useRef(false);
 
   useEffect(() => {
     if (listenerAddedRef.current) return;
@@ -31,6 +33,23 @@ export const useSlap = () => {
     let listener: any;
     const CALIBRATION_MS = 1500;
     const calibrationStart = Date.now();
+
+    // Handle app visibility changes
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        // App went to background
+        isAppVisibleRef.current = false;
+      } else {
+        // App came to foreground - start stabilization
+        isAppVisibleRef.current = true;
+        resumeStabilizationRef.current = true;
+        setTimeout(() => {
+          resumeStabilizationRef.current = false;
+        }, 2000); // 2 second stabilization period
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     const startListening = async () => {
       try {
@@ -83,6 +102,12 @@ export const useSlap = () => {
           // Phase 3: detect slap if thresholds exist
           if (!thresholdsRef.current) return;
           if (cooldownRef.current) return;
+          
+          // Skip slap detection during app resume stabilization
+          if (resumeStabilizationRef.current) return;
+          
+          // Only detect when app is visible
+          if (!isAppVisibleRef.current) return;
 
           const { soft, medium, hard } = thresholdsRef.current;
           const minThreshold = soft * 0.5;
@@ -116,6 +141,7 @@ export const useSlap = () => {
       if (listener) listener.remove();
       listenerAddedRef.current = false;
       setIsListening(false);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
 
