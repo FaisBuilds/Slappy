@@ -19,7 +19,7 @@ export default function CalibrationScreen({ capturePeak, saveThresholds }: Props
     setCapturing(true);
     setFeedback("slap now!");
 
-    const peak = await capturePeak(1000);
+    const peak = await capturePeak(3000);
     peaksRef.current = [...peaksRef.current, peak];
 
     setFeedback(`got it! z=${peak.toFixed(1)}`);
@@ -70,7 +70,7 @@ export default function CalibrationScreen({ capturePeak, saveThresholds }: Props
         <>
           <p className="text-3xl font-bold mb-3">calibrate your slap</p>
           <p className="text-gray-400 text-center mb-10">
-            we'll record 3 slaps so the app knows your phone and your style
+            we'll record 3 slaps so the app knows your phone and your style. slap with your palm for best results
           </p>
           <button
             onClick={() => setStep("soft")}

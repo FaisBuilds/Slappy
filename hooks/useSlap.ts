@@ -26,6 +26,10 @@ export const useSlap = () => {
   const isAppVisibleRef = useRef(true);
   const resumeStabilizationRef = useRef(false);
 
+  // Peak tracking across a short burst window for missed slaps
+  const burstPeakRef = useRef<number>(0);
+  const burstTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
     if (listenerAddedRef.current) return;
     listenerAddedRef.current = true;
@@ -34,22 +38,19 @@ export const useSlap = () => {
     const CALIBRATION_MS = 1500;
     const calibrationStart = Date.now();
 
-    // Handle app visibility changes
     const handleVisibilityChange = () => {
       if (document.hidden) {
-        // App went to background
         isAppVisibleRef.current = false;
       } else {
-        // App came to foreground - start stabilization
         isAppVisibleRef.current = true;
         resumeStabilizationRef.current = true;
         setTimeout(() => {
           resumeStabilizationRef.current = false;
-        }, 2000); // 2 second stabilization period
+        }, 2000);
       }
     };
 
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     const startListening = async () => {
       try {
@@ -66,21 +67,22 @@ export const useSlap = () => {
           const z = acc.z ?? 0;
           const force = Math.sqrt(x * x + y * y + z * z);
 
-          // Phase 1: idle calibration
+          // Phase 1: calibration window
           if (Date.now() - calibrationStart < CALIBRATION_MS) {
             calibrationSamplesRef.current.push(force);
             return;
           }
 
-          // Phase 2: compute baseline + stddev once
+          // Phase 2: compute baseline once
           if (baselineRef.current === null) {
             const s = calibrationSamplesRef.current;
             const avg = s.reduce((a, b) => a + b, 0) / s.length;
-            const variance = s.reduce((a, b) => a + Math.pow(b - avg, 2), 0) / s.length;
+            const variance =
+              s.reduce((a, b) => a + Math.pow(b - avg, 2), 0) / s.length;
             baselineRef.current = avg;
-            stdDevRef.current = Math.sqrt(variance);
+            // Clamp stdDev — prevents division by near-zero on very stable devices
+            stdDevRef.current = Math.max(Math.sqrt(variance), 0.5);
 
-            // Check for saved thresholds
             const saved = localStorage.getItem("slapThresholds");
             if (saved) {
               thresholdsRef.current = JSON.parse(saved);
@@ -92,40 +94,52 @@ export const useSlap = () => {
             return;
           }
 
-          // Always track live z-score for setup screen to read
           const zScore =
             stdDevRef.current && stdDevRef.current > 0
               ? (force - baselineRef.current!) / stdDevRef.current
               : 0;
           currentZScoreRef.current = zScore;
 
-          // Phase 3: detect slap if thresholds exist
           if (!thresholdsRef.current) return;
           if (cooldownRef.current) return;
-          
-          // Skip slap detection during app resume stabilization
           if (resumeStabilizationRef.current) return;
-          
-          // Only detect when app is visible
           if (!isAppVisibleRef.current) return;
 
           const { soft, medium, hard } = thresholdsRef.current;
-          const minThreshold = soft * 0.5;
 
-          if (zScore > minThreshold) {
-            let level: SlapIntensity;
-            if (zScore < medium) level = "soft";
-            else if (zScore < hard) level = "medium";
-            else level = "hard";
+          // Minimum trigger = 40% of soft threshold (was 50% — more sensitive)
+          const minThreshold = soft * 0.4;
 
-            setIntensity(level);
-            setSlapCount((prev) => prev + 1);
+          if (zScore <= minThreshold) return;
 
-            cooldownRef.current = true;
-            setTimeout(() => {
-              cooldownRef.current = false;
-              setIntensity(null);
-            }, 500);
+          // Burst window: collect the true peak over 80ms
+          // This catches slaps where the sharpest spike arrives a few frames late
+          if (burstPeakRef.current < zScore) {
+            burstPeakRef.current = zScore;
+          }
+
+          if (!burstTimerRef.current) {
+            burstTimerRef.current = setTimeout(() => {
+              const peak = burstPeakRef.current;
+              burstPeakRef.current = 0;
+              burstTimerRef.current = null;
+
+              // Classify using the true peak of the burst
+              // Boundaries: soft < medium threshold, medium < hard threshold, else hard
+              let level: SlapIntensity;
+              if (peak < medium) level = "soft";
+              else if (peak < hard) level = "medium";
+              else level = "hard";
+
+              setIntensity(level);
+              setSlapCount((prev) => prev + 1);
+
+              cooldownRef.current = true;
+              setTimeout(() => {
+                cooldownRef.current = false;
+                setIntensity(null);
+              }, 400); // slightly tighter cooldown (was 500ms)
+            }, 80); // 80ms burst window — ~5 accelerometer frames
           }
         });
 
@@ -141,7 +155,8 @@ export const useSlap = () => {
       if (listener) listener.remove();
       listenerAddedRef.current = false;
       setIsListening(false);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      if (burstTimerRef.current) clearTimeout(burstTimerRef.current);
     };
   }, []);
 
