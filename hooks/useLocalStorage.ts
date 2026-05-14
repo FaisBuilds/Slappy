@@ -17,22 +17,27 @@ const STORAGE_KEY = "slapdroid_user_stats";
 export const useLocalStorage = () => {
   const [stats, setStats] = useState<UserStats | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
+  const VERSION_KEY = "slapdroid_stats_version";
+  const CURRENT_VERSION = "1";
 
-  // Load from localStorage on mount
-  useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      try {
-        setStats(JSON.parse(stored));
-      } catch (error) {
-        console.error("Failed to parse stored stats:", error);
-        initializeStats();
-      }
-    } else {
-      initializeStats();
-    }
-    setIsLoaded(true);
-  }, []);
+useEffect(() => {
+  const savedVersion = localStorage.getItem(VERSION_KEY);
+  const stored = localStorage.getItem(STORAGE_KEY);
+
+  if (savedVersion !== CURRENT_VERSION) {
+    // Fresh install or update — reset everything
+    initializeStats();
+    localStorage.setItem(VERSION_KEY, CURRENT_VERSION);
+  } else if (stored) {
+    // Normal load
+    setStats(JSON.parse(stored));
+  } else {
+    // No stored data
+    initializeStats();
+  }
+  setIsLoaded(true);
+}, []);
+  
 
   // Initialize fresh stats
   const initializeStats = () => {
@@ -43,6 +48,7 @@ export const useLocalStorage = () => {
     };
     setStats(newStats);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(newStats));
+    localStorage.setItem(VERSION_KEY, CURRENT_VERSION);
   };
 
   // Add a slap to storage
