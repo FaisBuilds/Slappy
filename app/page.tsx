@@ -2,77 +2,70 @@
 
 import { useSlap } from "@/hooks/useSlap";
 import { useSound } from "@/hooks/useSound";
-import { useLocalStorage } from "@/hooks/useLocalStorage";
+import { usePlayer } from "@/hooks/usePlayer";
+import { useLeaderboard } from "@/hooks/useLeaderboard";
+
 import FloatingLips from "@/components/FloatingLips";
 import SlapZone from "@/components/SlapZone";
 import SlapCounter from "@/components/SlapCounter";
-import CalibrationScreen from "@/components/CalibrationScreen";
-import { useEffect, useState, useRef } from "react";
+import LeaderboardSheet from "@/components/LeaderboardSheet";
+import UsernameDialog from "@/components/UsernameDialog";
+import { useState } from "react";
+
+const SOUND_ASSETS = [
+  "/sounds/slap1.mp3",
+  "/sounds/slap2.mp3",
+  "/sounds/slap3.mp3"
+];
 
 export default function Home() {
-  const {
-    intensity,
-    isCalibrating,
-    needsSetup,
-    capturePeak,
-    saveThresholds,
-    resetThresholds,
-  } = useSlap();
-  const { playSound, isPlaying } = useSound();
-  const { stats, isLoaded, addSlap } = useLocalStorage();
-  const [displayCount, setDisplayCount] = useState(0);
+  const { username, totalSlaps, isNewUser, createAccount, addSlap } = usePlayer();
+  const { players, isLoading, refetch } = useLeaderboard();
   const [isGlowActive, setIsGlowActive] = useState(false);
-  const prevIntensityRef = useRef<string | null>(null);
 
-  useEffect(() => {
-    if (isLoaded && stats) {
-      setDisplayCount(stats.totalSlaps);
-    }
-  }, [isLoaded]);
+  // Audio queue engine hook
+  const { playNext, isPlaying } = useSound({ sounds: SOUND_ASSETS });
 
   const triggerImpact = () => {
     setIsGlowActive(true);
     setTimeout(() => setIsGlowActive(false), 250);
   };
 
-  useEffect(() => {
-    if (intensity && prevIntensityRef.current === null) {
-      playSound(intensity);
+  // Hardware Accelerometer integration
+  const { isListening } = useSlap({
+    onSlap: () => {
+      if (isNewUser) return;
+      playNext();
       triggerImpact();
-      setDisplayCount((prev) => prev + 1);
-      addSlap(intensity);
-    }
-    prevIntensityRef.current = intensity;
-  }, [intensity, playSound, addSlap]);
+      addSlap();
+    },
+  });
 
+  // Manual fallback desktop testing tap
   const handleManualSlap = () => {
-    const force = Math.random() * 30;
-    const level = force < 12 ? "soft" : force < 20 ? "medium" : "hard";
-    playSound(level);
+    if (isNewUser) return;
+    playNext();
     triggerImpact();
-    setDisplayCount((prev) => prev + 1);
-    addSlap(level);
+    addSlap();
   };
 
   return (
     <div className="relative w-full h-screen bg-black overflow-hidden select-none">
-
-      {isCalibrating && (
-        <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/80">
-          <p className="text-white text-lg tracking-widest animate-pulse">
-            hold still...
-          </p>
-        </div>
-      )}
-
-      {!isCalibrating && needsSetup && (
-        <CalibrationScreen
-          capturePeak={capturePeak}
-          saveThresholds={saveThresholds}
-        />
-      )}
+      
+      {/* Sensor Readiness Status Pill */}
+      <div className="absolute top-6 left-1/2 transform -translate-x-1/2 z-50">
+        <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold border backdrop-blur-md ${
+          isListening 
+            ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" 
+            : "bg-red-500/10 text-red-400 border-red-500/20"
+        }`}>
+          <span className={`w-2 h-2 rounded-full ${isListening ? "bg-emerald-400 animate-pulse" : "bg-red-500"}`} />
+          {isListening ? "🟢 Accelerometer Ready" : "🔴 Sensor Unavailable"}
+        </span>
+      </div>
 
       <FloatingLips />
+      
       <div className="relative z-10 flex flex-col items-center justify-center h-full">
         <div
           className={`transition-all duration-200 transform ${isGlowActive ? "scale-110" : "scale-100"}`}
@@ -82,27 +75,35 @@ export default function Home() {
               : "none",
           }}
         >
-          <SlapCounter count={displayCount} />
+          <SlapCounter count={totalSlaps} />
         </div>
+        
         <SlapZone
           onSlap={handleManualSlap}
-          disabled={isPlaying || isCalibrating || needsSetup}
+          disabled={isPlaying}
         />
 
-        {/* Recalibrate button — small, bottom of screen */}
-        {!needsSetup && !isCalibrating && (
-          <button
-  onClick={resetThresholds}
-  className="absolute bottom-6 flex items-center gap-2 px-5 py-2.5 rounded-full border border-red-800/40 bg-red-950/30 text-red-400 text-xs tracking-widest uppercase backdrop-blur-sm transition-all duration-200 active:scale-95 hover:bg-red-900/40 hover:border-red-600/60 hover:text-red-300"
->
-  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-    <path d="M3 3v5h5"/>
-  </svg>
-  recalibrate
-</button>
+        {/* Floating details badge directly tracking user identity under the zone */}
+        {username && (
+          <p className="absolute bottom-24 text-[11px] font-mono tracking-wider text-neutral-500 uppercase">
+            Logged in as @{username}
+          </p>
         )}
+
+        {/* Modularized Leaderboard Interface Context */}
+        <LeaderboardSheet 
+          players={players} 
+          isLoading={isLoading} 
+          username={username} 
+          refetch={refetch} 
+        />
       </div>
+
+      {/* Modularized Account Verification Gateway */}
+      <UsernameDialog 
+        isOpen={isNewUser} 
+        createAccount={createAccount} 
+      />
     </div>
   );
 }

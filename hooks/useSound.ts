@@ -1,80 +1,63 @@
-import { Howl } from 'howler';
-import { useRef, useEffect, useState } from 'react';
+'use client'
 
-type SlapIntensity = 'soft' | 'medium' | 'hard';
+import { Howl } from 'howler'
+import { useEffect, useRef, useState } from 'react'
+import { createSoundPool } from '@/lib/sound-pool'
 
-export const useSound = () => {
-  const soundsRef = useRef<Record<SlapIntensity, Howl | null>>({
-    soft: null,
-    medium: null,
-    hard: null,
-  });
-  const [isPlaying, setIsPlaying] = useState(false);
-  const soundTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+type UseSoundProps = {
+  sounds: string[]
+}
+
+export const useSound = ({ sounds }: UseSoundProps) => {
+  const poolRef = useRef<ReturnType<typeof createSoundPool> | null>(null)
+  const howlMapRef = useRef<Map<string, Howl>>(new Map())
+  const [isPlaying, setIsPlaying] = useState(false)
 
   useEffect(() => {
-    // ✅ Enable HTML5 audio for mobile
-    Howler.usingWebAudio = true;
+    if (!sounds || sounds.length === 0) return
 
-    soundsRef.current = {
-      soft: new Howl({
-        src: ['/sounds/soft.mp3'],
-        preload: true,
-        html5: true, // ✅ Enable HTML5 fallback
-        onend: () => setIsPlaying(false),
-      }),
-      medium: new Howl({
-        src: ['/sounds/medium.mp3'],
-        preload: true,
-        html5: true, // ✅ Enable HTML5 fallback
-        onend: () => setIsPlaying(false),
-      }),
-      hard: new Howl({
-        src: ['/sounds/hard.mp3'],
-        preload: true,
-        html5: true, // ✅ Enable HTML5 fallback
-        onend: () => setIsPlaying(false),
-      }),
-    };
+    poolRef.current = createSoundPool(sounds)
+
+    sounds.forEach((src) => {
+      if (!howlMapRef.current.has(src)) {
+        const howl = new Howl({
+          src: [src],
+          preload: true,
+          // html5: false uses standard Web Audio API buffers. 
+          // Crucial for low-latency multi-trigger reactions inside Capacitor wrappers.
+          html5: false, 
+          onplay: () => setIsPlaying(true),
+          onend: () => setIsPlaying(false),
+          onplayerror: () => setIsPlaying(false),
+        })
+
+        howlMapRef.current.set(src, howl)
+      }
+    })
 
     return () => {
-      Object.values(soundsRef.current).forEach((sound) => {
-        if (sound) {
-          sound.stop();
-          sound.unload();
-        }
-      });
-      if (soundTimeoutRef.current) {
-        clearTimeout(soundTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  const playSound = (intensity: SlapIntensity | number) => {
-    let soundKey: SlapIntensity = 'soft';
-    if (typeof intensity === 'number') {
-      if (intensity < 12) soundKey = 'soft';
-      else if (intensity <= 20) soundKey = 'medium';
-      else soundKey = 'hard';
-    } else {
-      soundKey = intensity;
+      howlMapRef.current.forEach((sound) => {
+        sound.stop()
+        sound.unload()
+      })
+      howlMapRef.current.clear()
     }
+  }, [sounds])
 
-    const sound = soundsRef.current[soundKey];
-    
-    if (sound) {
-      sound.stop();
-      sound.play();
-      setIsPlaying(true);
+  const playNext = () => {
+    if (!poolRef.current) return
 
-      if (soundTimeoutRef.current) {
-        clearTimeout(soundTimeoutRef.current);
-      }
-      soundTimeoutRef.current = setTimeout(() => {
-        setIsPlaying(false);
-      }, 500);
-    }
-  };
+    const next = poolRef.current.getNext()
+    const sound = howlMapRef.current.get(next)
 
-  return { playSound, isPlaying };
-};
+    if (!sound) return
+
+    // Allow sounds to overlap dynamically on concurrent triggers
+    sound.play()
+  }
+
+  return {
+    playNext,
+    isPlaying,
+  }
+}
