@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "generate:sounds": "node scripts/generate-sound-manifest.mjs",
+    "predev": "node scripts/generate-sound-manifest.mjs",
+    "prebuild": "node scripts/generate-sound-manifest.mjs",
     "dev": "next dev --turbo",
     "build": "next build",
     "start": "next start",

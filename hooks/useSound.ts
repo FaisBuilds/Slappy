@@ -15,11 +15,12 @@ export const useSound = ({ sounds }: UseSoundProps) => {
 
   useEffect(() => {
     if (!sounds || sounds.length === 0) return
+    const howls = howlMapRef.current
 
     poolRef.current = createSoundPool(sounds)
 
     sounds.forEach((src) => {
-      if (!howlMapRef.current.has(src)) {
+      if (!howls.has(src)) {
         const howl = new Howl({
           src: [src],
           preload: true,
@@ -31,16 +32,16 @@ export const useSound = ({ sounds }: UseSoundProps) => {
           onplayerror: () => setIsPlaying(false),
         })
 
-        howlMapRef.current.set(src, howl)
+        howls.set(src, howl)
       }
     })
 
     return () => {
-      howlMapRef.current.forEach((sound) => {
+      howls.forEach((sound) => {
         sound.stop()
         sound.unload()
       })
-      howlMapRef.current.clear()
+      howls.clear()
     }
   }, [sounds])
 

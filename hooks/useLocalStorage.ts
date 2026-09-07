@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 export interface SlapData {
   id: string;
@@ -20,27 +20,7 @@ export const useLocalStorage = () => {
   const VERSION_KEY = "slapdroid_stats_version";
   const CURRENT_VERSION = "1";
 
-useEffect(() => {
-  const savedVersion = localStorage.getItem(VERSION_KEY);
-  const stored = localStorage.getItem(STORAGE_KEY);
-
-  if (savedVersion !== CURRENT_VERSION) {
-    // Fresh install or update — reset everything
-    initializeStats();
-    localStorage.setItem(VERSION_KEY, CURRENT_VERSION);
-  } else if (stored) {
-    // Normal load
-    setStats(JSON.parse(stored));
-  } else {
-    // No stored data
-    initializeStats();
-  }
-  setIsLoaded(true);
-}, []);
-  
-
-  // Initialize fresh stats
-  const initializeStats = () => {
+  const initializeStats = useCallback(() => {
     const newStats: UserStats = {
       totalSlaps: 0,
       slaps: [],
@@ -49,7 +29,33 @@ useEffect(() => {
     setStats(newStats);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(newStats));
     localStorage.setItem(VERSION_KEY, CURRENT_VERSION);
-  };
+  }, []);
+
+  useEffect(() => {
+    const loadStats = () => {
+      const savedVersion = localStorage.getItem(VERSION_KEY);
+      const stored = localStorage.getItem(STORAGE_KEY);
+
+      if (savedVersion !== CURRENT_VERSION || !stored) {
+        initializeStats();
+      } else {
+        try {
+          const parsed = JSON.parse(stored) as UserStats;
+          if (!Array.isArray(parsed.slaps) || typeof parsed.totalSlaps !== "number") {
+            initializeStats();
+          } else {
+            setStats(parsed);
+          }
+        } catch {
+          initializeStats();
+        }
+      }
+
+      setIsLoaded(true);
+    };
+
+    window.setTimeout(loadStats, 0);
+  }, [initializeStats]);
 
   // Add a slap to storage
   const addSlap = (intensity: "soft" | "medium" | "hard" | null) => {

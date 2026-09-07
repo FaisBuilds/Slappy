@@ -23,7 +23,7 @@ export function createSoundPool(paths: string[]): SoundPool {
   let lastPlayed: string | null = null
 
   const refillQueue = () => {
-    let shuffled = shuffleArray(paths)
+    const shuffled = shuffleArray(paths)
 
     if (
       paths.length > 1 &&

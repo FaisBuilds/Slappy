@@ -53,7 +53,7 @@ const FloatingLipsComponent = memo(() => {
       elRefs.current.forEach((el) => {
         el.style.willChange = "transform";
         el.style.position = "absolute";
-        (el.style as any).webkitBackfaceVisibility = "hidden";
+        el.style.setProperty("-webkit-backface-visibility", "hidden");
         el.style.backfaceVisibility = "hidden";
       });
     }

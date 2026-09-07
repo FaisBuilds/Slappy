@@ -1,7 +1,6 @@
 "use client";
 
 import { useSlap } from "@/hooks/useSlap";
-import { useSound } from "@/hooks/useSound";
 import { usePlayer } from "@/hooks/usePlayer";
 import { useLeaderboard } from "@/hooks/useLeaderboard";
 
@@ -10,43 +9,32 @@ import SlapZone from "@/components/SlapZone";
 import SlapCounter from "@/components/SlapCounter";
 import LeaderboardSheet from "@/components/LeaderboardSheet";
 import UsernameDialog from "@/components/UsernameDialog";
-import { useState } from "react";
-
-const SOUND_ASSETS = [
-  "/sounds/slap1.mp3",
-  "/sounds/slap2.mp3",
-  "/sounds/slap3.mp3"
-];
+import { useCallback, useState } from "react";
 
 export default function Home() {
   const { username, totalSlaps, isNewUser, createAccount, addSlap } = usePlayer();
   const { players, isLoading, refetch } = useLeaderboard();
   const [isGlowActive, setIsGlowActive] = useState(false);
 
-  // Audio queue engine hook
-  const { playNext, isPlaying } = useSound({ sounds: SOUND_ASSETS });
-
-  const triggerImpact = () => {
+  const triggerImpact = useCallback(() => {
     setIsGlowActive(true);
     setTimeout(() => setIsGlowActive(false), 250);
-  };
+  }, []);
 
-  // Hardware Accelerometer integration
-  const { isListening } = useSlap({
-    onSlap: () => {
-      if (isNewUser) return;
-      playNext();
-      triggerImpact();
-      addSlap();
-    },
+  const handleSlap = useCallback(() => {
+    addSlap();
+    void refetch();
+  }, [addSlap, refetch]);
+
+  const { isListening, isCalibrated, soundsReady, registerManualSlap } = useSlap({
+    isEnabled: !isNewUser,
+    onImpact: triggerImpact,
+    onSlap: handleSlap,
   });
 
-  // Manual fallback desktop testing tap
   const handleManualSlap = () => {
     if (isNewUser) return;
-    playNext();
-    triggerImpact();
-    addSlap();
+    registerManualSlap();
   };
 
   return (
@@ -60,7 +48,13 @@ export default function Home() {
             : "bg-red-500/10 text-red-400 border-red-500/20"
         }`}>
           <span className={`w-2 h-2 rounded-full ${isListening ? "bg-emerald-400 animate-pulse" : "bg-red-500"}`} />
-          {isListening ? "🟢 Accelerometer Ready" : "🔴 Sensor Unavailable"}
+          {!soundsReady
+            ? "🟡 Loading sounds…"
+            : isListening
+              ? isCalibrated
+                ? "🟢 Accelerometer Ready"
+                : "🟡 Calibrating… hold still"
+              : "🔴 Sensor Unavailable"}
         </span>
       </div>
 
@@ -78,10 +72,7 @@ export default function Home() {
           <SlapCounter count={totalSlaps} />
         </div>
         
-        <SlapZone
-          onSlap={handleManualSlap}
-          disabled={isPlaying}
-        />
+        <SlapZone onSlap={handleManualSlap} />
 
         {/* Floating details badge directly tracking user identity under the zone */}
         {username && (

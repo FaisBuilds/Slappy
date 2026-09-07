@@ -23,7 +23,7 @@ export const useLeaderboard =
         setError(null)
         const data = await getLeaderboard()
         setPlayers(data)
-      } catch (err) {
+      } catch {
         setError('Failed to load leaderboard')
       } finally {
         setIsLoading(false)
