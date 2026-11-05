@@ -55,6 +55,7 @@ export const useSlap = ({
   const [isListening, setIsListening] = useState(false)
   const [isCalibrated, setIsCalibrated] = useState(false)
   const [soundsReady, setSoundsReady] = useState(false)
+  const [soundLoadFailed, setSoundLoadFailed] = useState(false)
 
   const cooldownRef = useRef(false)
   const listenerAddedRef = useRef(false)
@@ -82,7 +83,6 @@ export const useSlap = ({
 
   const poolRef = useRef<ReturnType<typeof createSoundPool> | null>(null)
   const howlMapRef = useRef<Map<string, Howl>>(new Map())
-  const soundPathsRef = useRef<string[]>([])
 
   const resetCalibration = useCallback(() => {
     calibrationDeltasRef.current = []
@@ -167,19 +167,41 @@ export const useSlap = ({
 
         if (paths.length === 0) {
           console.warn('No .mp3 files in public/sounds/')
+          setSoundLoadFailed(true)
           return
         }
 
-        soundPathsRef.current = paths
-        poolRef.current = createSoundPool(paths)
+        const loadedPaths: string[] = []
+        const completedPaths = new Set<string>()
+
+        const completeLoad = (src: string, didLoad: boolean) => {
+          if (cancelled || completedPaths.has(src)) return
+
+          completedPaths.add(src)
+          if (didLoad) loadedPaths.push(src)
+
+          if (completedPaths.size !== paths.length) return
+
+          if (loadedPaths.length === 0) {
+            console.error('All bundled sounds failed to load')
+            setSoundLoadFailed(true)
+            return
+          }
+
+          poolRef.current = createSoundPool(loadedPaths)
+          setSoundsReady(true)
+        }
 
         paths.forEach((src) => {
-          if (howlMapRef.current.has(src)) return
-
           const howl = new Howl({
             src: [src],
             preload: true,
             html5: false,
+            onload: () => completeLoad(src, true),
+            onloaderror: (_id, error) => {
+              console.error('Sound load failed:', src, error)
+              completeLoad(src, false)
+            },
             onplayerror: (_id, error) => {
               console.warn('WebAudio play failed, retrying:', src, error)
               howl.once('unlock', () => howl.play())
@@ -188,11 +210,10 @@ export const useSlap = ({
 
           howlMapRef.current.set(src, howl)
         })
-
-        setSoundsReady(true)
       })
       .catch((error) => {
         console.error('Sound manifest load failed:', error)
+        if (!cancelled) setSoundLoadFailed(true)
       })
 
     return () => {
@@ -279,6 +300,7 @@ export const useSlap = ({
     isListening,
     isCalibrated,
     soundsReady,
+    soundLoadFailed,
     registerManualSlap,
   }
 }

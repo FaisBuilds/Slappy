@@ -21,7 +21,13 @@ export default function Home() {
     addSlap();
   }, [addSlap]);
 
-  const { isListening, isCalibrated, soundsReady, registerManualSlap } = useSlap({
+  const {
+    isListening,
+    isCalibrated,
+    soundsReady,
+    soundLoadFailed,
+    registerManualSlap,
+  } = useSlap({
     isEnabled: isLoaded,
     onImpact: triggerImpact,
     onSlap: handleSlap,
@@ -43,7 +49,9 @@ export default function Home() {
         }`}>
           <span className={`w-2 h-2 rounded-full ${isListening ? "bg-emerald-400 animate-pulse" : "bg-red-500"}`} />
           {!soundsReady
-            ? "🟡 Loading sounds…"
+            ? soundLoadFailed
+              ? "🔴 Sounds Unavailable"
+              : "🟡 Loading sounds…"
             : isListening
               ? isCalibrated
                 ? "🟢 Accelerometer Ready"
