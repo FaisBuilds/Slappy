@@ -1,10 +1,10 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace = "com.faisal.slapdroid"
+    namespace = "com.FaisBuilds.Slappy"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.faisal.slapdroid"
+        applicationId "com.FaisBuilds.Slappy"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

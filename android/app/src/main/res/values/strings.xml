@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">SlapDroid</string>
-    <string name="title_activity_main">SlapDroid</string>
-    <string name="package_name">com.faisal.slapdroid</string>
-    <string name="custom_url_scheme">com.faisal.slapdroid</string>
+    <string name="app_name">Slappy</string>
+    <string name="title_activity_main">Slappy</string>
+    <string name="package_name">com.FaisBuilds.Slappy</string>
+    <string name="custom_url_scheme">com.FaisBuilds.Slappy</string>
 </resources>

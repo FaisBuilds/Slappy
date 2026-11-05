@@ -21,6 +21,6 @@ export async function loadSoundManifest(): Promise<string[]> {
   }
 
   return data.sounds
-    .map((p) => p.toLowerCase())
-    .filter((p) => p.endsWith('.mp3'))
+    .filter((path) => typeof path === 'string')
+    .filter((path) => path.toLowerCase().endsWith('.mp3'))
 }

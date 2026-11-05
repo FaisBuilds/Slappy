@@ -1,28 +1,22 @@
-# SlapDroid
+# Slappy
 
-SlapDroid is a fun Android app that reacts to physical interaction. Slap your phone and get an instant sound reaction.
+Slappy is a playful, local-only app that turns device movement or a manual tap
+into a sound effect and a locally saved counter increment. Avoid hitting or
+damaging your device.
 
----
+## Features
 
-## 📦 Repositories
+- Motion detection with calibration and cooldown on supported devices.
+- A manual **SLAP** button when motion sensing is unavailable.
+- Bundled sound effects and a slap counter saved on the device.
+- Android packaging with Capacitor and a static Next.js export.
 
-### 1. slapdroid-app
-Core Android app built using Next.js + Capacitor.
+## Development
 
-#### Features
-- Slap detection using accelerometer
-- Tap button fallback (for all devices)
-- 3 intensity levels (soft / medium / hard)
-- Instant sound response
-- Slap counter
-- Background mode support
-
-#### Tech Stack
-- Next.js (App Router)
-- Capacitor (Android wrapper)
-- JavaScript / TypeScript
-
-#### Getting Started
 ```bash
 pnpm install
 pnpm dev
+```
+
+Build the static web export with `pnpm build`. The Android project is in
+`android/`.

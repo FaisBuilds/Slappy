@@ -87,7 +87,7 @@ export const useLocalStorage = () => {
     initializeStats();
   };
 
-  // Get slaps from last N hours (for future MVP2 leaderboard)
+  // Get recent slaps for time-based summaries
   const getSlapsInLastHours = (hours: number) => {
     if (!stats) return [];
     const cutoffTime = Date.now() - hours * 60 * 60 * 1000;
