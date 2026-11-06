@@ -37,37 +37,50 @@ export default function Home() {
     registerManualSlap();
   };
 
+  const readiness = !soundsReady
+    ? soundLoadFailed
+      ? { label: "Sounds unavailable", tone: "unavailable" }
+      : { label: "Loading sounds…", tone: "pending" }
+    : isListening
+      ? isCalibrated
+        ? { label: "Accelerometer ready", tone: "ready" }
+        : { label: "Calibrating… hold still", tone: "pending" }
+      : { label: "Sensor unavailable", tone: "unavailable" };
+
   return (
-    <div className="relative w-full h-screen bg-black overflow-hidden select-none">
-      
-      {/* Sensor Readiness Status Pill */}
-      <div className="absolute top-6 left-1/2 transform -translate-x-1/2 z-50">
-        <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold border backdrop-blur-md ${
-          isListening 
-            ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" 
-            : "bg-red-500/10 text-red-400 border-red-500/20"
-        }`}>
-          <span className={`w-2 h-2 rounded-full ${isListening ? "bg-emerald-400 animate-pulse" : "bg-red-500"}`} />
-          {!soundsReady
-            ? soundLoadFailed
-              ? "🔴 Sounds Unavailable"
-              : "🟡 Loading sounds…"
-            : isListening
-              ? isCalibrated
-                ? "🟢 Accelerometer Ready"
-                : "🟡 Calibrating… hold still"
-              : "🔴 Sensor Unavailable"}
+    <div className="app-shell relative min-h-[100svh] w-full overflow-hidden select-none text-foreground">
+      <div className="absolute top-6 left-1/2 z-50 -translate-x-1/2">
+        <span
+          role="status"
+          aria-live="polite"
+          className={`inline-flex items-center gap-2 rounded-full border px-3.5 py-2 text-xs font-semibold shadow-lg backdrop-blur-md ${
+            readiness.tone === "ready"
+              ? "border-amber-300/20 bg-amber-300/10 text-amber-200"
+              : readiness.tone === "pending"
+                ? "border-amber-300/15 bg-amber-300/5 text-amber-100"
+                : "border-[#ff806b]/25 bg-[#ff806b]/10 text-[#ffab9d]"
+          }`}
+        >
+          <span
+            aria-hidden="true"
+            className={`h-2 w-2 rounded-full ${
+              readiness.tone === "unavailable"
+                ? "bg-[#ff806b]"
+                : "bg-[#f5bd63]"
+            } ${readiness.tone === "pending" ? "animate-pulse" : ""}`}
+          />
+          {readiness.label}
         </span>
       </div>
 
       <FloatingEmojis />
 
-      <div className="relative z-10 flex flex-col items-center justify-center h-full">
+      <div className="relative z-10 flex min-h-[100svh] flex-col items-center justify-center">
         <div
           className={`transition-all duration-200 transform ${isGlowActive ? "scale-110" : "scale-100"}`}
           style={{
             filter: isGlowActive
-              ? "drop-shadow(0 0 30px rgba(220, 38, 38, 0.8))"
+              ? "drop-shadow(0 0 30px rgba(255, 117, 95, 0.45))"
               : "none",
           }}
         >

@@ -135,7 +135,7 @@ export default function FloatingEmojis() {
     <div
       ref={containerRef}
       aria-hidden="true"
-      className="absolute inset-0 z-0 overflow-hidden pointer-events-none"
+      className="ambient-emojis pointer-events-none absolute inset-0 z-0 overflow-hidden"
       style={{ isolation: "isolate" }}
     >
       {emojiImages.map((src, index) => (

@@ -11,17 +11,15 @@ export default function SlapZone({ onSlap, disabled = false }: SlapZoneProps) {
       onClick={onSlap}
       disabled={disabled}
       className={`
-        w-40 h-40 rounded-full font-bold text-2xl
-        transition-all duration-100 ease-out
-        active:scale-90
+        h-40 w-40 rounded-full border-2 font-bold text-2xl uppercase tracking-wider
+        transition-all duration-150 ease-out
+        active:scale-95
+        focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#f4b65f]
         ${
           disabled
-            ? "bg-red-900 opacity-60 cursor-not-allowed shadow-lg shadow-red-600/30"
-            : "bg-red-600 hover:bg-red-700 shadow-lg shadow-red-600/50 hover:shadow-red-600/80 hover:shadow-2xl"
+            ? "cursor-not-allowed border-[#775047] bg-[#382a28] text-[#c4aaa2] shadow-lg shadow-black/20"
+            : "border-[#ff927f] bg-[#ff755f] text-[#28120e] shadow-[0_12px_30px_rgba(255,117,95,0.24)] hover:border-[#ffad9e] hover:bg-[#ff8875] hover:shadow-[0_16px_38px_rgba(255,117,95,0.3)]"
         }
-        text-white uppercase tracking-wider
-        border-2 border-red-500
-        hover:border-red-400
       `}
     >
       SLAP
